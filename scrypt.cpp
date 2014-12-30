@@ -43,48 +43,18 @@ using namespace Concurrency;
 #include <stdint.h>
 #include <string.h>
 
-#include <emmintrin.h>
+#include <arm_neon.h>
 #include <malloc.h>
 #include <new>
 
-// A thin wrapper around the builtin __m128i type
-class uint32x4_t
-{
-public:
-#if WIN32
-    void * operator new(size_t size) _THROW1(_STD bad_alloc) { void *p; if ((p = _aligned_malloc(size, 16)) == 0) { static const std::bad_alloc nomem; _RAISE(nomem); } return (p); }
-    void operator delete(void *p) { _aligned_free(p); }
-    void * operator new[](size_t size) _THROW1(_STD bad_alloc) { void *p; if ((p = _aligned_malloc(size, 16)) == 0) { static const std::bad_alloc nomem; _RAISE(nomem); } return (p); }
-    void operator delete[](void *p) { _aligned_free(p); }
-#else
-    void * operator new(size_t size) throw(std::bad_alloc) { void *p; if (posix_memalign(&p, 16, size) < 0) { static const std::bad_alloc nomem; throw nomem; } return (p); }
-    void operator delete(void *p) { free(p); }
-    void * operator new[](size_t size) throw(std::bad_alloc) { void *p; if (posix_memalign(&p, 16, size) < 0) { static const std::bad_alloc nomem; throw nomem; } return (p); }
-    void operator delete[](void *p) { free(p); }
-#endif
-    uint32x4_t() { };
-    uint32x4_t(const __m128i init) { val = init; }
-    uint32x4_t(const uint32_t init) { val = _mm_set1_epi32((int)init); }
-    uint32x4_t(const uint32_t a, const uint32_t b, const uint32_t c, const uint32_t d) { val = _mm_setr_epi32((int)a,(int)b,(int)c,(int)d); }
-    inline operator const __m128i() const { return val; }
-    inline const uint32x4_t operator+(const uint32x4_t &other) const { return _mm_add_epi32(val, other); }
-    inline const uint32x4_t operator+(const uint32_t other) const { return _mm_add_epi32(val, _mm_set1_epi32((int)other)); }
-    inline uint32x4_t& operator+=(const uint32x4_t other) { val = _mm_add_epi32(val, other); return *this; }
-    inline uint32x4_t& operator+=(const uint32_t other) { val = _mm_add_epi32(val, _mm_set1_epi32((int)other)); return *this; }
-    inline const uint32x4_t operator&(const uint32_t other) const { return _mm_and_si128(val, _mm_set1_epi32((int)other)); }
-    inline const uint32x4_t operator&(const uint32x4_t &other) const { return _mm_and_si128(val, other); }
-    inline const uint32x4_t operator|(const uint32x4_t &other) const { return _mm_or_si128(val, other); }
-    inline const uint32x4_t operator^(const uint32x4_t &other) const { return _mm_xor_si128(val, other); }
-    inline const uint32x4_t operator<<(const int num) const { return _mm_slli_epi32(val, num); }
-    inline const uint32x4_t operator>>(const int num) const { return _mm_srli_epi32(val, num); }
-    inline const uint32_t operator[](const int num) const { return ((uint32_t*)&val)[num]; }
- protected:
-    __m128i val;
-};
-
-// non-member overload
-inline const uint32x4_t operator+(const uint32_t left, const uint32x4_t &right) { return _mm_add_epi32(_mm_set1_epi32((int)left), right); }
-
+inline const uint32x4_t uint32x4_t_create(const uint32_t a, const uint32_t b, const uint32_t c, const uint32_t d) {
+	uint32x4_t val;
+	vld1q_lane_u32(&a, val, 0);
+	vld1q_lane_u32(&b, val, 1);
+	vld1q_lane_u32(&c, val, 2);
+	vld1q_lane_u32(&d, val, 3);
+	return val;
+}
 
 //
 // Code taken from sha2.cpp and vectorized, with minimal changes where required
@@ -126,7 +96,7 @@ static const uint32_t sha256_k[64] = {
 void sha256_initx4(uint32x4_t *statex4)
 {
 	for (int i=0; i<8; ++i)
-		statex4[i] = sha256_h[i];
+		statex4[i] = vld1q_dup_u32(&sha256_h[i]);
 }
 
 /* Elementary functions used by SHA256 */
@@ -266,7 +236,7 @@ static void sha256dx4(uint32x4_t *hash, uint32x4_t *data)
 	sha256_transformx4(S, data, 0);
 	sha256_transformx4(S, data + 16, 0);
 	for (int i=8; i<16; ++i)
-		S[i] = sha256d_hash1[i];
+		S[i] = vld1q_dup_u32(&sha256d_hash1[i]);
 	sha256_initx4(hash);
 	sha256_transformx4(hash, S, 0);
 }
@@ -335,7 +305,7 @@ static inline void sha256d_msx4(uint32x4_t *hash, uint32x4_t *W,
 	}
 
 	for (i=0; i<8; ++i)
-		S[i] = prehash[i];
+		S[i] = vld1q_dup_u32(&prehash[i]);
 
 	RNDr(S, W,  3);
 	RNDr(S, W,  4);
@@ -412,7 +382,7 @@ static inline void sha256d_msx4(uint32x4_t *hash, uint32x4_t *W,
 	W[31] = S[31];
 	
 	for (i=8; i<16; ++i)
-		S[i] = sha256d_hash1[i];
+		S[i] = vld1q_dup_u32(&sha256d_hash1[i]);
 	S[16] = s1(sha256d_hash1[14]) + sha256d_hash1[ 9] + s0(S[ 1]) + S[ 0];
 	S[17] = s1(sha256d_hash1[15]) + sha256d_hash1[10] + s0(S[ 2]) + S[ 1];
 	S[18] = s1(S[16]) + sha256d_hash1[11] + s0(S[ 3]) + S[ 2];
@@ -540,14 +510,14 @@ static inline void HMAC_SHA256_80_initx4(const uint32x4_t *key,
 	for (i = 0; i < 8; i++)
 		pad[i] = ihash[i] ^ 0x5c5c5c5c;
 	for (; i < 16; i++)
-		pad[i] = 0x5c5c5c5c;
+		pad[i] = vdupq_n_u32((uint32_t)0x5c5c5c5c);
 	sha256_transformx4(ostate, pad, 0);
 
 	sha256_initx4(tstate);
 	for (i = 0; i < 8; i++)
 		pad[i] = ihash[i] ^ 0x36363636;
 	for (; i < 16; i++)
-		pad[i] = 0x36363636;
+		pad[i] = vdupq_n_u32((uint32_t)0x36363636);
 	sha256_transformx4(tstate, pad, 0);
 }
 
@@ -567,7 +537,7 @@ static inline void PBKDF2_SHA256_80_128x4(const uint32x4_t *tstate,
 
 	for (i = 0; i < 4; i++) {
 		memcpy(obuf, istate, 4*32);
-		ibuf[4] = i + 1;
+		ibuf[4] = i + vdupq_n_u32((uint32_t)1);
 		sha256_transformx4(obuf, ibuf, 0);
 
 		memcpy(ostate2, ostate, 4*32);
@@ -726,8 +696,8 @@ int scanhash_scrypt(int thr_id, uint32_t *pdata,
 	if (sha_on_cpu) {
 		for (i = 0; i < throughput/4; ++i) {
 			for (int j = 0; j < 20; j++) {
-				datax4[0][20*i+j] = uint32x4_t(pdata[j]);
-				datax4[1][20*i+j] = uint32x4_t(pdata[j]);
+				datax4[0][20*i+j] = vdupq_n_u32(pdata[j]);
+				datax4[1][20*i+j] = vdupq_n_u32(pdata[j]);
 			}
 		}
 	}
@@ -745,7 +715,7 @@ int scanhash_scrypt(int thr_id, uint32_t *pdata,
 		if (sha_on_cpu) 
         {
 			for (i = 0; i < throughput/4; i++) {
-				datax4[nxt][i * 20 + 19] = uint32x4_t(n+0, n+1, n+2, n+3);
+				datax4[nxt][i * 20 + 19] = uint32x4_t_create(n+0, n+1, n+2, n+3);
 				n += 4;
 			}
 			if (sha_multithreaded)
@@ -764,7 +734,7 @@ int scanhash_scrypt(int thr_id, uint32_t *pdata,
 				for (int share = 0; share < num_shares; share++) {
 					for (int k = (share_workload*share)/4; k < (share_workload*(share+1))/4 && k < throughput/4; k++) {
 						for (int l = 0; l < 8; l++)
-							tstatex4[nxt][k * 8 + l] = uint32x4_t(midstate[l]);
+							tstatex4[nxt][k * 8 + l] = vdupq_n_u32(midstate[l]);
 							HMAC_SHA256_80_initx4(&datax4[nxt][k * 20], &tstatex4[nxt][k * 8], &ostatex4[nxt][k * 8]);
 							PBKDF2_SHA256_80_128x4(&tstatex4[nxt][k * 8], &ostatex4[nxt][k * 8], &datax4[nxt][k * 20], &Xx4[nxt][k * 32]);
 					}
@@ -775,7 +745,7 @@ int scanhash_scrypt(int thr_id, uint32_t *pdata,
 			{
 				for (int k = 0; k < throughput/4; k++) {
 					for (int l = 0; l < 8; l++)
-						tstatex4[nxt][k * 8 + l] = uint32x4_t(midstate[l]);
+						tstatex4[nxt][k * 8 + l] = vdupq_n_u32(midstate[l]);
 						HMAC_SHA256_80_initx4(&datax4[nxt][k * 20], &tstatex4[nxt][k * 8], &ostatex4[nxt][k * 8]);
 						PBKDF2_SHA256_80_128x4(&tstatex4[nxt][k * 8], &ostatex4[nxt][k * 8], &datax4[nxt][k * 20], &Xx4[nxt][k * 32]);
 				}
@@ -808,7 +778,7 @@ int scanhash_scrypt(int thr_id, uint32_t *pdata,
 
         	for (i = 0; i < throughput/4; i++) {
 				for (int j = 0; j < 32; j++) {
-					Xx4[cur][i * 32 + j] = uint32x4_t(X[cur][(4*i+0)*32+j], X[cur][(4*i+1)*32+j],
+					Xx4[cur][i * 32 + j] = uint32x4_t_create(X[cur][(4*i+0)*32+j], X[cur][(4*i+1)*32+j],
 													X[cur][(4*i+2)*32+j], X[cur][(4*i+3)*32+j] );
 				}
 			}

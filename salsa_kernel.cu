@@ -145,7 +145,7 @@ KernelInterface *Best_Kernel_Heuristics(cudaDeviceProp *props)
         // high register count kernels (scrypt, low N-factor scrypt-jane)
         if (props->major > 3 || (props->major == 3 && props->minor >= 5))
             kernel = new NV2Kernel(); // we don't want this for Keccak though
-        else if (props->major == 3 && props->minor == 0)
+        else if (props->major == 3 && (props->minor == 0 || props->minor == 2))
             kernel = new NVKernel();
         else if (props->major == 2 || props->major == 1)
             kernel = new FermiKernel();
@@ -155,7 +155,7 @@ KernelInterface *Best_Kernel_Heuristics(cudaDeviceProp *props)
        // low register count kernels (high N-factor scrypt-jane)
        if (props->major > 3 || (props->major == 3 && props->minor >= 5))
             kernel = new TitanKernel();
-        else if (props->major == 3 && props->minor == 0)
+        else if (props->major == 3 && (props->minor == 0 || props->minor == 2))
             kernel = new KeplerKernel();
         else if (props->major == 2 || props->major == 1)
             kernel = new TestKernel();
