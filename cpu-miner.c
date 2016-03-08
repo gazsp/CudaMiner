@@ -72,7 +72,7 @@ wrap_nvml_handle *nvmlh = NULL;
 #define LP_SCANTIME		60
 
 
-#define EXIT_CODE_OK            0 
+#define EXIT_CODE_OK            0
 #define EXIT_CODE_USAGE         1
 #define EXIT_CODE_POOL_TIMEOUT  2
 #define EXIT_CODE_SW_INIT_ERROR 3
@@ -133,7 +133,7 @@ static inline void affine_to_cpu(int id, int cpu)
 #endif
 }
 #endif
-		
+
 enum workio_commands {
 	WC_GET_WORK,
 	WC_SUBMIT_WORK,
@@ -216,7 +216,7 @@ struct option {
 };
 #endif
 
-// CB 
+// CB
 static char const usage[] = "\
 Usage: " PROGRAM_NAME " [OPTIONS]\n\
 Options:\n\
@@ -306,7 +306,7 @@ static char const short_options[] =
 #ifdef HAVE_SYSLOG_H
 	"S"
 #endif
-	"a:c:Dhp:Px:qr:R:s:t:T:o:u:O:Vd:l:i:b:C:m:H:L:"; // CB 
+	"a:c:Dhp:Px:qr:R:s:t:T:o:u:O:Vd:l:i:b:C:m:H:L:"; // CB
 
 static struct option const options[] = {
 	{ "algo", 1, NULL, 'a' },
@@ -336,7 +336,7 @@ static struct option const options[] = {
 	{ "user", 1, NULL, 'u' },
 	{ "userpass", 1, NULL, 'O' },
 	{ "version", 0, NULL, 'V' },
-	{ "no-autotune", 0, NULL, 1004 }, // CB 
+	{ "no-autotune", 0, NULL, 1004 }, // CB
 	{ "devices", 1, NULL, 'd' },
 	{ "launch-config", 1, NULL, 'l' },
 	{ "interactive", 1, NULL, 'i' },
@@ -377,7 +377,7 @@ static bool jobj_binary(const json_t *obj, const char *key,
 static bool work_decode(const json_t *val, struct work *work)
 {
 	int i;
-	
+
 	if (unlikely(!jobj_binary(val, "data", work->data, sizeof(work->data)))) {
 		applog(LOG_ERR, "JSON inval data");
 		goto err_out;
@@ -410,7 +410,7 @@ static void share_result(int result, const char *reason)
 		hashrate += thr_hashrates[i];
 	result ? accepted_count++ : rejected_count++;
 	pthread_mutex_unlock(&stats_lock);
-	
+
 	sprintf(s, hashrate >= 1e6 ? "%.0f" : "%.2f", 1e-3 * hashrate);
 	applog(LOG_INFO, "accepted: %lu/%lu (%.2f%%), %s khash/s %s",
 		   accepted_count,
@@ -629,7 +629,7 @@ static void *workio_thread(void *userdata)
 		case WC_SUBMIT_WORK:
 			ok = workio_submit_work(current_pool, wc, curl);
 			break;
-		case WC_ABORT:  // CB 
+		case WC_ABORT:  // CB
 		default:		/* should never happen */
 			ok = false;
 			break;
@@ -651,7 +651,7 @@ static void *workio_thread(void *userdata)
 	return NULL;
 }
 
-static void workio_abort() // CB 
+static void workio_abort() // CB
 {
 	struct workio_cmd *wc;
 
@@ -715,7 +715,7 @@ static bool get_work(struct thr_info *thr, struct work *work)
 static bool submit_work(struct thr_info *thr, const struct work *work_in)
 {
 	struct workio_cmd *wc;
-	
+
 	/* fill out work request message */
 	wc = (struct workio_cmd *)calloc(1, sizeof(*wc));
 	if (!wc)
@@ -760,7 +760,7 @@ static void stratum_gen_work(struct stratum_ctx *sctx, struct work *work)
 		memcpy(merkle_root + 32, sctx->job.merkle[i], 32);
 		sha256d(merkle_root, merkle_root, 64);
 	}
-	
+
 	/* Increment extranonce2 */
 	for (i = 0; i < (int)sctx->xnonce2_size && !++sctx->job.xnonce2[i]; i++);
 
@@ -800,7 +800,7 @@ static void *miner_thread(void *userdata)
 	struct work work;
 	uint32_t max_nonce;
 	uint32_t end_nonce = 0xffffffffU / opt_n_threads * (thr_id + 1) - 0x20;
-	// CB 
+	// CB
 	char s[16];
 	int i;
 	memset(&work, 0, sizeof(work)); // CB fix uninitialized variable problem
@@ -831,7 +831,7 @@ static void *miner_thread(void *userdata)
 		if (pool->have_stratum) {
 			while (!abort_flag && !work_restart[thr_id].restart && (!*pool->g_work.job_id || time(NULL) >= pool->g_work_time + 120))
 				sleep(1);
-            if(abort_flag) 
+            if(abort_flag)
                 break;
 			pthread_mutex_lock(&g_work_lock);
 			if (work.data[19] >= end_nonce) {
@@ -869,7 +869,7 @@ static void *miner_thread(void *userdata)
 			work.data[19]++;
 		pthread_mutex_unlock(&g_work_lock);
 		work_restart[thr_id].restart = 0;
-		
+
 		static bool firstwork = true;
 		static time_t firstwork_time;
 
@@ -883,12 +883,12 @@ static void *miner_thread(void *userdata)
 		{
 			int passed = (int)(time(NULL) - firstwork_time);
 			int remain = (int)(opt_time_limit - passed);
-			if (remain < 0) 
-            { 
+			if (remain < 0)
+            {
 			    app_exit_code = EXIT_CODE_TIME_LIMIT;
-                abort_flag = true; 
-                workio_abort(); 
-                break; 
+                abort_flag = true;
+                workio_abort();
+                break;
             }
 			if (remain < max64) max64 = remain;
 		}
@@ -899,7 +899,7 @@ static void *miner_thread(void *userdata)
 			max_nonce = end_nonce;
 		else
 			max_nonce = (uint32_t)(work.data[19] + max64);
-		
+
 		hashes_done = 0;
 		// CB
 
@@ -913,7 +913,7 @@ static void *miner_thread(void *userdata)
         work.target[6] = ~0u;
         work.target[7] = 0xfffff;
 #endif
-        
+
         /* scan nonces for a proof-of-work hash */
 		switch (opt_algo) {
 		case ALGO_SCRYPT:
@@ -948,7 +948,7 @@ static void *miner_thread(void *userdata)
 
         if(rc < 0)
         {
-            // kernel error - terminate            
+            // kernel error - terminate
 			app_exit_code = EXIT_CODE_CUDA_ERROR;
             abort_flag = true;
             workio_abort();
@@ -961,7 +961,7 @@ static void *miner_thread(void *userdata)
 			time(&firstwork_time);
 			firstwork = false;
 		}
-		
+
 		// CB
 		/* record scanhash elapsed time */
 		timeval_subtract(&diff, &tv_end, &tv_start);
@@ -977,7 +977,7 @@ static void *miner_thread(void *userdata)
 #if defined(USE_WRAPNVML)
 		if (nvmlh != NULL) {
 			unsigned int tempC=0, fanpcnt=0, mwatts=0;
-			char gputempbuf[64], gpufanbuf[64], gpupowbuf[64]; 
+			char gputempbuf[64], gpufanbuf[64], gpupowbuf[64];
 			strcpy(gputempbuf, " N/A");
 			strcpy(gpufanbuf, " N/A");
 			strcpy(gpupowbuf, " N/A");
@@ -997,7 +997,7 @@ static void *miner_thread(void *userdata)
 				device_map[thr_id], device_name[thr_id], s);
 			applog(LOG_INFO, "        Temp: %s  Fan speed: %s  Power: %s",
 				gputempbuf, gpufanbuf, gpupowbuf);
-			} 
+			}
 			else
 #endif
 			applog(LOG_INFO, "GPU #%d: %s, %s khash/s",
@@ -1044,7 +1044,7 @@ static bool move_to_next_pool(void)
         current_pool++;
         current_pool_index++;
         ok = true;
-    } 
+    }
     else if(num_pools == 1 || !opt_loop_pools) {
         abort_flag = true;
         restart_threads();
@@ -1098,10 +1098,22 @@ out:
 	return ret;
 }
 
+static void *keep_alive(struct pool_params* pool) {
+    sleep(45);
+
+    // Send something to keep the connection open
+    stratum_authorize(&pool->stratum, pool->user, pool->pass);
+
+    pool->keep_alive_thread = null;
+
+    int retval = 0;
+    pthread_exit(&retval);
+}
+
 static void *longpoll_thread(void *userdata)
 {
 	CURL *curl = NULL;
-	
+
 	curl = curl_easy_init();
 	if (unlikely(!curl)) {
 		applog(LOG_ERR, "CURL initialization failed");
@@ -1115,17 +1127,24 @@ static void *longpoll_thread(void *userdata)
 	while (!abort_flag) { // CB
         // save the current pool for use during this loop iteration
         struct pool_params* pool = current_pool;
-        
+
         if(pool->have_stratum && pool->stratum.url) {
 
-            if(prev_pool != pool || prev_mode != 1)
-            {
+            if(!pool->keep_alive_thread) {
+                applog(LOG_INFO, "Creating keep-alive thread...");
+                if(unlikely(pthread_create(pool->keep_alive_thread, NULL, keep_alive, pool))) {
+                    applog(LOG_ERR, "Failed to create keep-alive thread");
+                }
+            }
+
+            if(prev_pool != pool || prev_mode != 1) {
 	            applog(LOG_INFO, "Starting Stratum on %s", pool->rpc_url);
                 prev_pool = pool;
                 prev_mode = 1;
             }
 
             failures = 0;
+
             while (!pool->stratum.curl && !abort_flag) {
 			    pthread_mutex_lock(&g_work_lock);
 			    pool->g_work_time = 0;
@@ -1146,12 +1165,12 @@ static void *longpoll_thread(void *userdata)
 				    }
 
 				    applog(LOG_ERR, "...retry after %d seconds", opt_fail_pause);
+
 				    sleep(opt_fail_pause);
 			    }
 		    }
 
             if (pool->stratum.curl) {
-
 		        if (pool->stratum.job.job_id &&
 		            (strcmp(pool->stratum.job.job_id, pool->g_work.job_id) || !pool->g_work_time)) {
 
@@ -1165,7 +1184,7 @@ static void *longpoll_thread(void *userdata)
 				        restart_threads();
 			        }
 		        }
-		
+
         	    char *stratum_response;
 
 		        if (!stratum_socket_full(&pool->stratum, 120)) {
@@ -1189,7 +1208,7 @@ static void *longpoll_thread(void *userdata)
 
 		    json_t *val, *soval;
 		    int err;
-            
+
             if(prev_pool != pool || prev_mode != 2)
             {
 	            applog(LOG_INFO, "Starting Longpoll on %s", pool->rpc_url);
@@ -1199,7 +1218,7 @@ static void *longpoll_thread(void *userdata)
 
 		    val = json_rpc_call(pool, curl, pool->longpoll_url, pool->userpass, rpc_req,
 				        false, true, &err);
-		    
+
             if (likely(val)) {
 			    if (!opt_quiet) applog(LOG_INFO, "LONGPOLL detected new block");
 			    soval = json_object_get(json_object_get(val, "result"), "submitold");
@@ -1226,7 +1245,7 @@ static void *longpoll_thread(void *userdata)
 		    }
         }
         else  {
-            // The current pool supports neither stratum nor longpoll, 
+            // The current pool supports neither stratum nor longpoll,
             // so look once again after a while if the pool has been changed.
             sleep(1);
         }
@@ -1250,7 +1269,7 @@ static void show_usage_and_exit(bool error)
 	if (error)
 		fprintf(stderr, "Try `" PROGRAM_NAME " --help' for more information.\n");
 	else
-		printf(usage);	
+		printf(usage);
 
     exit(error ? EXIT_CODE_USAGE : EXIT_CODE_OK);
 }
@@ -1275,7 +1294,7 @@ static void finalize_pool_params(struct pool_params* pool, struct pool_params* p
 		pool->userpass = (char*)malloc(strlen(pool->user) + strlen(pool->pass) + 2);
 		sprintf(pool->userpass, "%s:%s", pool->user, pool->pass);
 	}
-    
+
     pool->have_stratum = !strncasecmp(pool->rpc_url, "stratum", 7);
 
     if(pool->have_stratum)
@@ -1283,7 +1302,7 @@ static void finalize_pool_params(struct pool_params* pool, struct pool_params* p
 
 	pthread_mutex_init(&pool->stratum.sock_lock, NULL);
 	pthread_mutex_init(&pool->stratum.work_lock, NULL);
-    
+
 
     if(!want_stratum) pool->have_stratum = false;
     if(!want_longpoll) pool->have_longpoll = false;
@@ -1403,7 +1422,7 @@ static void parse_arg (int key, char *arg)
 			if (strncasecmp(arg, "http://", 7) && strncasecmp(arg, "https://", 8) &&
 					strncasecmp(arg, "stratum+tcp://", 14))
 				show_usage_and_exit(true);
-			
+
 			current_pool->rpc_url = strdup(arg);
 		} else {
 			if (!strlen(arg) || *arg == '/')
@@ -1428,7 +1447,7 @@ static void parse_arg (int key, char *arg)
 				current_pool->user = strdup(ap);
 			}
 			memmove(ap, p + 1, strlen(p + 1) + 1);
-		}        
+		}
 		break;
 	case 'O':			/* --userpass */
 		p = strchr(arg, ':');
@@ -1666,41 +1685,41 @@ void signal_handler(int sig)
 	}
 }
 #else // CB
-BOOL CtrlHandler( DWORD fdwCtrlType ) 
+BOOL CtrlHandler( DWORD fdwCtrlType )
 {
   bool result = (abort_flag == false);
-  switch( fdwCtrlType ) 
-  { 
-    case CTRL_C_EVENT: 
+  switch( fdwCtrlType )
+  {
+    case CTRL_C_EVENT:
       if (result) fprintf(stderr, "Ctrl-C\n" );
       app_exit_code = EXIT_CODE_KILLED;
       abort_flag = true; restart_threads(); workio_abort();
       return( result );
 
-    case CTRL_CLOSE_EVENT: 
+    case CTRL_CLOSE_EVENT:
       if (result) fprintf(stderr, "Ctrl-Close\n" );
       app_exit_code = EXIT_CODE_KILLED;
       abort_flag = true; restart_threads(); workio_abort();
       sleep(1);
-      return( result ); 
- 
-    case CTRL_BREAK_EVENT: 
+      return( result );
+
+    case CTRL_BREAK_EVENT:
       if (result) fprintf(stderr, "Ctrl-Break\n" );
       app_exit_code = EXIT_CODE_KILLED;
       abort_flag = true; restart_threads(); workio_abort();
-      return( result ); 
- 
-    case CTRL_LOGOFF_EVENT: 
+      return( result );
+
+    case CTRL_LOGOFF_EVENT:
       if (result) fprintf(stderr, "Ctrl-Logoff\n" );
       app_exit_code = EXIT_CODE_KILLED;
       abort_flag = true; restart_threads(); workio_abort();
-      return( result ); 
- 
-    case CTRL_SHUTDOWN_EVENT: 
+      return( result );
+
+    case CTRL_SHUTDOWN_EVENT:
       if (result) fprintf(stderr, "Ctrl-Shutdown\n" );
       app_exit_code = EXIT_CODE_KILLED;
       abort_flag = true; restart_threads(); workio_abort();
-      return( result ); 
+      return( result );
   }
   return ( FALSE );
 }
@@ -1750,7 +1769,7 @@ int main(int argc, char *argv[])
         return EXIT_CODE_SW_INIT_ERROR;
     }
 
-	if (num_gpus == 0) 
+	if (num_gpus == 0)
     {
 		applog(LOG_ERR, "There are no CUDA devices in your system!");
 		return EXIT_CODE_CUDA_NODEVICE;
@@ -1793,7 +1812,7 @@ int main(int argc, char *argv[])
 		signal(SIGTERM, signal_handler);
 	}
 #else // CB
-    if( SetConsoleCtrlHandler( (PHANDLER_ROUTINE) CtrlHandler, TRUE ) ) 
+    if( SetConsoleCtrlHandler( (PHANDLER_ROUTINE) CtrlHandler, TRUE ) )
     {
 
     }
@@ -1830,7 +1849,7 @@ int main(int argc, char *argv[])
 	thr_info = (struct thr_info *)calloc(opt_n_threads + 3, sizeof(*thr));
 	if (!thr_info)
 		return EXIT_CODE_SW_INIT_ERROR;
-	
+
 	thr_hashrates = (double *) calloc(opt_n_threads, sizeof(double));
 	if (!thr_hashrates)
 		return EXIT_CODE_SW_INIT_ERROR;

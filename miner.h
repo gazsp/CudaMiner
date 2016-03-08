@@ -268,6 +268,7 @@ struct pool_params {
     struct stratum_ctx stratum;
     struct work g_work;
     time_t g_work_time;
+    pthread_t keep_alive_thread;
 };
 
 bool stratum_socket_full(struct stratum_ctx *sctx, int timeout);
