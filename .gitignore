@@ -1,2 +1,9 @@
 *.o
-
+.DS_Store
+.deps/
+autom4te.cache/
+compat/jansson/.deps/
+compat/jansson/libjansson.a
+cpuminer-config.h.in~
+cudaminer
+stamp-h1
